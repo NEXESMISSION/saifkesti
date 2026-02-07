@@ -46,8 +46,8 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)]">
-      <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 sm:py-4">
+      <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 pt-[env(safe-area-inset-top,0px)]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Link to="/" className="text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">
             Finance Tracker
           </Link>
@@ -93,14 +93,14 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="flex-1 pb-28 md:pb-12 pt-2">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <main className="flex-1 pb-24 md:pb-8">
+        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-5">
           <Outlet />
         </div>
       </main>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom)]"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom,0px)]"
         aria-label="Mobile navigation"
       >
         <div className="grid grid-cols-4 gap-1 px-2 py-2">
