@@ -22,11 +22,6 @@ export function AppLayout() {
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
   const selectedAccountId = useStore((s) => s.selectedAccountId);
 
-  // Require login when Supabase is configured (online-only)
-  if (supabase && !sessionUser) {
-    return <Navigate to="/login" replace />;
-  }
-
   useEffect(() => {
     if (!sessionUser?.id) return;
     (async () => {
@@ -39,6 +34,11 @@ export function AppLayout() {
       setCategories(allCats);
     })();
   }, [sessionUser?.id, setAccounts, setCategories, setSelectedAccountId]);
+
+  // Require login when Supabase is configured (online-only) — after all hooks
+  if (supabase && !sessionUser) {
+    return <Navigate to="/login" replace />;
+  }
 
   async function handleSignOut() {
     await supabase?.auth.signOut();

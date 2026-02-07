@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Wallet } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -15,12 +16,13 @@ export function LoginPage() {
 
   if (!supabase) {
     return (
-      <div className="mx-auto max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-        <p className="font-medium">Supabase not configured</p>
-        <p className="mt-1 text-sm">Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env</p>
-        <Link to="/" className="mt-4 inline-block text-sm underline">
-          Back to app
-        </Link>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-amber-200 bg-amber-50/80 p-6 text-amber-800 backdrop-blur-sm">
+          <p className="font-semibold">Supabase not configured</p>
+          <p className="mt-2 text-sm text-amber-700">
+            Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
+          </p>
+        </div>
       </div>
     );
   }
@@ -56,61 +58,89 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Sign in</h1>
-        <p className="mt-1 text-sm text-slate-500">Use your Supabase Auth account</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-4">
+      <div className="w-full max-w-[400px]">
+        {/* Card */}
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-xl shadow-zinc-200/20">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+              <Wallet className="h-6 w-6" aria-hidden />
+            </div>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900">
+              Finance Tracker
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              Sign in to continue
+            </p>
+          </div>
+
+          <form onSubmit={handleSignIn} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-zinc-700">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="h-11 rounded-xl border-zinc-200 bg-zinc-50/50 focus:bg-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-zinc-700">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="h-11 rounded-xl border-zinc-200 bg-zinc-50/50 focus:bg-white"
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">
+                {message}
+              </p>
+            )}
+
+            <div className="space-y-3 pt-1">
+              <Button
+                type="submit"
+                className="h-11 w-full rounded-xl font-medium"
+                disabled={loading}
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 w-full rounded-xl font-medium"
+                disabled={loading}
+                onClick={handleSignUp}
+              >
+                Create account
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-zinc-400">
+          Your data is stored securely and synced when you sign in.
+        </p>
       </div>
-
-      <form onSubmit={handleSignIn} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        {error && (
-          <p className="text-sm text-red-600" role="alert">
-            {error}
-          </p>
-        )}
-        {message && (
-          <p className="text-sm text-green-600" role="status">
-            {message}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button type="submit" className="flex-1" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={loading}
-            onClick={handleSignUp}
-          >
-            Sign up
-          </Button>
-        </div>
-      </form>
-
     </div>
   );
 }
