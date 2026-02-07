@@ -4,7 +4,7 @@ import { LayoutDashboard, Building2, Tags, BarChart3, LogIn, LogOut } from 'luci
 import { supabase } from '../lib/supabase';
 import { useStore } from '../stores/useStore';
 import { getAccounts } from '../services/accountService';
-import { getCategories, seedDefaultCategories } from '../services/categoryService';
+import { getCategories, seedDefaultCategories, cleanupDuplicateCategories } from '../services/categoryService';
 import { PullToRefresh } from './PullToRefresh';
 
 const navItems = [
@@ -30,18 +30,13 @@ export function AppLayout() {
   useEffect(() => {
     if (!sessionUser?.id) return;
     (async () => {
-      const [accts, cats] = await Promise.all([
-        getAccounts(sessionUser.id),
-        getCategories(sessionUser.id),
-      ]);
+      const accts = await getAccounts(sessionUser.id);
       setAccounts(accts);
-      setCategories(cats);
       if (accts.length > 0 && !selectedAccountId) setSelectedAccountId(accts[0].id);
-      if (cats.length === 0) {
-        await seedDefaultCategories(sessionUser.id);
-        const allCats = await getCategories(sessionUser.id);
-        setCategories(allCats);
-      }
+      await cleanupDuplicateCategories(sessionUser.id);
+      await seedDefaultCategories(sessionUser.id);
+      const allCats = await getCategories(sessionUser.id);
+      setCategories(allCats);
     })();
   }, [sessionUser?.id, setAccounts, setCategories, setSelectedAccountId]);
 

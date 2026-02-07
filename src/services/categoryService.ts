@@ -37,20 +37,56 @@ export async function getCategories(userId: string): Promise<Category[]> {
   return (data ?? []).map(rowToCategory);
 }
 
+/** Insert only default categories that don't already exist (by name+type). Idempotent. */
 export async function seedDefaultCategories(userId: string): Promise<Category[]> {
   if (!supabase) return [];
   const existing = await getCategories(userId);
-  if (existing.length > 0) return existing;
-  const rows = DEFAULT_CATEGORIES.map((c) => ({
+  const toInsert = DEFAULT_CATEGORIES.filter(
+    (d) => !existing.some((e) => e.name === d.name && e.type === d.type)
+  );
+  if (toInsert.length === 0) return getCategories(userId);
+  const rows = toInsert.map((c) => ({
     user_id: userId,
     name: c.name,
     type: c.type,
     icon: c.icon,
     is_system: c.is_system,
   }));
-  const { data, error } = await supabase.from('categories').insert(rows).select();
+  const { error } = await supabase.from('categories').insert(rows);
   if (error) throw new Error(error.message);
-  return (data ?? []).map(rowToCategory);
+  return getCategories(userId);
+}
+
+/**
+ * Remove duplicate categories (same user_id, name, type). Keeps one per group and
+ * reassigns any transactions pointing at duplicates to the kept category.
+ */
+export async function cleanupDuplicateCategories(userId: string): Promise<void> {
+  if (!supabase) return;
+  const categories = await getCategories(userId);
+  const byKey = new Map<string, Category[]>();
+  for (const c of categories) {
+    const key = `${c.name}\n${c.type}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key)!.push(c);
+  }
+  for (const [, group] of byKey) {
+    if (group.length <= 1) continue;
+    const sorted = [...group].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const keep = sorted[0];
+    const duplicateIds = sorted.slice(1).map((c) => c.id);
+    for (const dupId of duplicateIds) {
+      const { error: updateErr } = await supabase
+        .from('transactions')
+        .update({ category_id: keep.id })
+        .eq('category_id', dupId);
+      if (updateErr) throw new Error(updateErr.message);
+      const { error: delErr } = await supabase.from('categories').delete().eq('id', dupId);
+      if (delErr) throw new Error(delErr.message);
+    }
+  }
 }
 
 export async function createCategory(

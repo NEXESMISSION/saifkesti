@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Wallet } from 'lucide-react';
 import { useStore } from '../stores/useStore';
-import { getAccounts } from '../services/accountService';
 import { getTransactions } from '../services/transactionService';
-import { getCategories, seedDefaultCategories } from '../services/categoryService';
+import { getCategories } from '../services/categoryService';
 import { getBalanceForAccount } from '../services/balanceService';
 import { subscribeToOnlineStatus } from '../lib/syncManager';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
@@ -21,7 +20,6 @@ export function Dashboard() {
   const transactions = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
   const selectedAccountId = useStore((s) => s.selectedAccountId);
-  const setAccounts = useStore((s) => s.setAccounts);
   const setTransactions = useStore((s) => s.setTransactions);
   const setCategories = useStore((s) => s.setCategories);
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
@@ -29,20 +27,12 @@ export function Dashboard() {
   const [calculatedBalance, setCalculatedBalance] = useState(0);
   const [reconcileOpen, setReconcileOpen] = useState(false);
 
+  // Accounts/categories are loaded and seeded in AppLayout; only refetch categories here if store is empty (e.g. pull-to-refresh)
   useEffect(() => {
     if (!sessionUser?.id) return;
-    (async () => {
-      const [accts, cats] = await Promise.all([
-        getAccounts(sessionUser.id),
-        getCategories(sessionUser.id),
-      ]);
-      if (accts.length > 0) setAccounts(accts);
-      if (cats.length === 0) await seedDefaultCategories(sessionUser.id);
-      const allCats = await getCategories(sessionUser.id);
-      setCategories(allCats);
-      if (accts.length > 0 && !selectedAccountId) setSelectedAccountId(accts[0].id);
-    })();
-  }, [sessionUser?.id, setAccounts, setCategories, setSelectedAccountId]);
+    if (categories.length > 0) return;
+    getCategories(sessionUser.id).then(setCategories);
+  }, [sessionUser?.id, categories.length, setCategories]);
 
   useEffect(() => {
     if (!selectedAccountId) return;
