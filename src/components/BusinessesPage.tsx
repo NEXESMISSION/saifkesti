@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import type { Account, AccountType } from '../types';
 
 export function BusinessesPage() {
-  const user = useStore((s) => s.user);
+  const sessionUser = useStore((s) => s.sessionUser);
   const accounts = useStore((s) => s.accounts);
   const addAccount = useStore((s) => s.addAccount);
   const updateAccountInStore = useStore((s) => s.updateAccount);
@@ -51,14 +51,14 @@ export function BusinessesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user?.id || !name.trim()) return;
+    if (!sessionUser?.id || !name.trim()) return;
     if (editingId) {
       await updateAccount(editingId, { name: name.trim(), type, initial_balance: parseFloat(initialBalance) || 0, color });
       updateAccountInStore(editingId, { name: name.trim(), type, initial_balance: parseFloat(initialBalance) || 0, color });
       closeDialog();
       return;
     }
-    const account = await createAccount(user.id, { name: name.trim(), type, initial_balance: parseFloat(initialBalance) || 0, color, icon: 'wallet' });
+    const account = await createAccount(sessionUser.id, { name: name.trim(), type, initial_balance: parseFloat(initialBalance) || 0, color, icon: 'wallet' });
     addAccount(account);
     closeDialog();
   }

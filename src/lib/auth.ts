@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import { useStore } from '../stores/useStore';
-import { getGuestUserId } from './guestUserId';
 
 /**
  * Initialize auth: sync Supabase session with store.
@@ -21,7 +20,7 @@ export function initAuth() {
         email: session.user.email ?? '',
       });
     } else {
-      setUser({ id: getGuestUserId() });
+      setUser(null);
       setSessionUser(null);
     }
   }
@@ -29,14 +28,14 @@ export function initAuth() {
   const client = supabase;
   client.auth.getSession().then(async ({ data: { session } }) => {
     if (!session?.user) {
-      setUser({ id: getGuestUserId() });
+      setUser(null);
       setSessionUser(null);
       return;
     }
     const { data: { user: currentUser }, error } = await client.auth.getUser();
     if (error || !currentUser) {
       await client.auth.signOut();
-      setUser({ id: getGuestUserId() });
+      setUser(null);
       setSessionUser(null);
       return;
     }

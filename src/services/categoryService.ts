@@ -1,8 +1,7 @@
-import { db } from '../lib/db';
-import { enqueueSync } from '../lib/syncManager';
+import { supabase } from '../lib/supabase';
 import type { Category } from '../types';
 
-export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
+const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
   { name: 'Uncategorized', type: 'expense', icon: 'help-circle', is_system: true },
   { name: 'Lost/Unknown', type: 'expense', icon: 'alert-circle', is_system: true },
   { name: 'Groceries', type: 'expense', icon: 'shopping-cart', is_system: false },
@@ -14,78 +13,78 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id' | 'created_at' 
   { name: 'Other Income', type: 'income', icon: 'dollar-sign', is_system: false },
 ];
 
+function rowToCategory(row: Record<string, unknown>): Category {
+  return {
+    id: row.id as string,
+    user_id: row.user_id as string,
+    name: row.name as string,
+    type: row.type as Category['type'],
+    icon: (row.icon as string) ?? 'tag',
+    is_system: Boolean(row.is_system),
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
 export async function getCategories(userId: string): Promise<Category[]> {
-  return db.categories.where('user_id').equals(userId).toArray();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToCategory);
 }
 
 export async function seedDefaultCategories(userId: string): Promise<Category[]> {
-  const existing = await db.categories.where('user_id').equals(userId).count();
-  if (existing > 0) return db.categories.where('user_id').equals(userId).toArray();
-  const now = new Date().toISOString();
-  const categories: Category[] = DEFAULT_CATEGORIES.map((c) => ({
-    id: crypto.randomUUID(),
+  if (!supabase) return [];
+  const existing = await getCategories(userId);
+  if (existing.length > 0) return existing;
+  const rows = DEFAULT_CATEGORIES.map((c) => ({
     user_id: userId,
-    ...c,
-    created_at: now,
-    updated_at: now,
+    name: c.name,
+    type: c.type,
+    icon: c.icon,
+    is_system: c.is_system,
   }));
-  await db.categories.bulkAdd(categories);
-  for (const c of categories) {
-    await enqueueSync({
-      operation: 'insert',
-      table: 'categories',
-      record_id: c.id,
-      payload: { ...c },
-      sync_status: 'pending',
-    });
-  }
-  return categories;
+  const { data, error } = await supabase.from('categories').insert(rows).select();
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToCategory);
 }
 
-export async function createCategory(userId: string, category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Category> {
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const newCat: Category = {
-    id,
-    user_id: userId,
-    name: category.name,
-    type: category.type,
-    icon: category.icon ?? 'tag',
-    is_system: category.is_system ?? false,
-    created_at: now,
-    updated_at: now,
-  };
-  await db.categories.add(newCat);
-  await enqueueSync({
-    operation: 'insert',
-    table: 'categories',
-    record_id: newCat.id,
-    payload: { ...newCat },
-    sync_status: 'pending',
-  });
-  return newCat;
+export async function createCategory(
+  userId: string,
+  category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+): Promise<Category> {
+  if (!supabase) throw new Error('Not configured');
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      user_id: userId,
+      name: category.name,
+      type: category.type,
+      icon: category.icon ?? 'tag',
+      is_system: category.is_system ?? false,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return rowToCategory(data);
 }
 
 export async function updateCategory(id: string, updates: Partial<Category>): Promise<void> {
-  const existing = await db.categories.get(id);
-  if (!existing) return;
-  const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-  await db.categories.put(updated);
-  await enqueueSync({
-    operation: 'update',
-    table: 'categories',
-    record_id: id,
-    payload: updated,
-    sync_status: 'pending',
-  });
+  if (!supabase) return;
+  const payload: Record<string, unknown> = { ...updates };
+  delete payload.id;
+  delete payload.user_id;
+  delete payload.created_at;
+  const { error } = await supabase.from('categories').update(payload).eq('id', id);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  await db.categories.delete(id);
-  await enqueueSync({
-    operation: 'delete',
-    table: 'categories',
-    record_id: id,
-    sync_status: 'pending',
-  });
+  if (!supabase) return;
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) throw new Error(error.message);
 }

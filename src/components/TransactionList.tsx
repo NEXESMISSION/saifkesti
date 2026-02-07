@@ -2,28 +2,20 @@ import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 import { useStore } from '../stores/useStore';
 import { deleteTransaction } from '../services/transactionService';
-import { getPendingSyncCount } from '../services/transactionService';
-import { SyncStatusBadge } from './SyncStatusBadge';
-import type { Transaction as Tx, SyncStatus } from '../types';
+import type { Transaction as Tx } from '../types';
 
 export function TransactionList({
   transactions,
   categories,
-  onRefreshPending,
 }: {
   transactions: Tx[];
   categories: { id: string; name: string }[];
-  onRefreshPending?: () => void;
 }) {
   const removeTransaction = useStore((s) => s.removeTransaction);
-  const setPendingSyncCount = useStore((s) => s.setPendingSyncCount);
 
   async function handleDelete(t: Tx) {
     removeTransaction(t.id);
     await deleteTransaction(t.id);
-    const count = await getPendingSyncCount();
-    setPendingSyncCount(count);
-    onRefreshPending?.();
   }
 
   function categoryName(id: string | null) {
@@ -65,7 +57,6 @@ export function TransactionList({
               {t.type === 'income' ? '+' : '-'}
               {Math.abs(t.amount).toFixed(2)}
             </span>
-            <SyncStatusBadge status={(t as Tx & { sync_status?: SyncStatus }).sync_status} />
             <button
               type="button"
               onClick={() => handleDelete(t)}

@@ -9,7 +9,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { AccountSelector } from './AccountSelector';
 import { useStore } from '../stores/useStore';
-import { createTransaction, getPendingSyncCount } from '../services/transactionService';
+import { createTransaction } from '../services/transactionService';
 import type { TransactionType } from '../types';
 import { format } from 'date-fns';
 
@@ -30,7 +30,6 @@ export function QuickAdd() {
   const selectedAccountId = useStore((s) => s.selectedAccountId);
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
   const addTransaction = useStore((s) => s.addTransaction);
-  const setPendingSyncCount = useStore((s) => s.setPendingSyncCount);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -57,9 +56,7 @@ export function QuickAdd() {
       date: format(new Date(), 'yyyy-MM-dd'),
       category_id: data.categoryId || null,
     });
-    addTransaction({ ...tx, sync_status: tx.sync_status ?? 'pending' });
-    const count = await getPendingSyncCount();
-    setPendingSyncCount(count);
+    addTransaction(tx);
     reset();
     setOpen(false);
   }

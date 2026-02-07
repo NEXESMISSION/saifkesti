@@ -1,4 +1,4 @@
-import { db } from '../lib/db';
+import { supabase } from '../lib/supabase';
 import type { Transaction } from '../types';
 
 export function calculateBalance(
@@ -14,8 +14,12 @@ export function calculateBalance(
 }
 
 export async function getBalanceForAccount(accountId: string): Promise<number> {
-  const account = await db.accounts.get(accountId);
-  if (!account) return 0;
-  const transactions = await db.transactions.where('account_id').equals(accountId).toArray();
-  return calculateBalance(account.initial_balance, transactions);
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('current_balance')
+    .eq('id', accountId)
+    .single();
+  if (error || !data) return 0;
+  return Number(data.current_balance ?? 0);
 }

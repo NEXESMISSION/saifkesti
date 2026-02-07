@@ -5,7 +5,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useStore } from '../stores/useStore';
 import { createTransaction } from '../services/transactionService';
-import { getPendingSyncCount } from '../services/transactionService';
 import type { Account } from '../types';
 
 export function BalanceReconciliation({
@@ -21,7 +20,6 @@ export function BalanceReconciliation({
 }) {
   const [actualBalance, setActualBalance] = useState('');
   const addTransaction = useStore((s) => s.addTransaction);
-  const setPendingSyncCount = useStore((s) => s.setPendingSyncCount);
   const categories = useStore((s) => s.categories);
   const lostCategory = categories.find((c) => c.name === 'Lost/Unknown');
 
@@ -44,9 +42,7 @@ export function BalanceReconciliation({
       date: new Date().toISOString().slice(0, 10),
       category_id: lostCategory.id,
     });
-    addTransaction({ ...tx, sync_status: 'pending' });
-    const count = await getPendingSyncCount();
-    setPendingSyncCount(count);
+    addTransaction(tx);
     setActualBalance('');
     onOpenChange(false);
   }

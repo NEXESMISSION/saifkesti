@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Building2, Tags, BarChart3, LogIn, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../stores/useStore';
@@ -17,29 +17,33 @@ const navItems = [
 export function AppLayout() {
   const location = useLocation();
   const sessionUser = useStore((s) => s.sessionUser);
-  const user = useStore((s) => s.user);
-  const accounts = useStore((s) => s.accounts);
   const setAccounts = useStore((s) => s.setAccounts);
   const setCategories = useStore((s) => s.setCategories);
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
   const selectedAccountId = useStore((s) => s.selectedAccountId);
 
+  // Require login when Supabase is configured (online-only)
+  if (supabase && !sessionUser) {
+    return <Navigate to="/login" replace />;
+  }
+
   useEffect(() => {
-    if (!user?.id || accounts.length > 0) return;
+    if (!sessionUser?.id) return;
     (async () => {
       const [accts, cats] = await Promise.all([
-        getAccounts(user.id),
-        getCategories(user.id),
+        getAccounts(sessionUser.id),
+        getCategories(sessionUser.id),
       ]);
-      if (accts.length > 0) {
-        setAccounts(accts);
-        if (!selectedAccountId) setSelectedAccountId(accts[0].id);
+      setAccounts(accts);
+      setCategories(cats);
+      if (accts.length > 0 && !selectedAccountId) setSelectedAccountId(accts[0].id);
+      if (cats.length === 0) {
+        await seedDefaultCategories(sessionUser.id);
+        const allCats = await getCategories(sessionUser.id);
+        setCategories(allCats);
       }
-      if (cats.length === 0) await seedDefaultCategories(user.id);
-      const allCats = await getCategories(user.id);
-      setCategories(allCats);
     })();
-  }, [user?.id, accounts.length, setAccounts, setCategories, setSelectedAccountId, selectedAccountId]);
+  }, [sessionUser?.id, setAccounts, setCategories, setSelectedAccountId]);
 
   async function handleSignOut() {
     await supabase?.auth.signOut();

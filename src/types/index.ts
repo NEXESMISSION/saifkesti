@@ -1,6 +1,5 @@
 export type AccountType = 'business' | 'personal';
 export type TransactionType = 'income' | 'expense';
-export type SyncStatus = 'synced' | 'pending' | 'failed';
 
 export interface Profile {
   id: string;
@@ -44,7 +43,6 @@ export interface Transaction {
   date: string;
   created_at: string;
   updated_at: string;
-  sync_status?: SyncStatus;
 }
 
 export interface BalanceSnapshot {
@@ -53,20 +51,4 @@ export interface BalanceSnapshot {
   balance: number;
   snapshot_date: string;
   created_at: string;
-}
-
-export interface SyncQueueItem {
-  id?: string;
-  operation: 'insert' | 'update' | 'delete';
-  table: 'transactions' | 'accounts' | 'categories';
-  record_id: string;
-  payload?: Record<string, unknown>;
-  sync_status: 'pending' | 'failed';
-  created_at: string;
-  error?: string;
-}
-
-export interface MetadataRecord {
-  key: string;
-  value: string | number | null;
 }

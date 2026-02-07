@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import type { Category } from '../types';
 
 export function CategoriesPage() {
-  const user = useStore((s) => s.user);
+  const sessionUser = useStore((s) => s.sessionUser);
   const categories = useStore((s) => s.categories);
   const addCategory = useStore((s) => s.addCategory);
   const updateCategoryInStore = useStore((s) => s.updateCategory);
@@ -46,14 +46,14 @@ export function CategoriesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user?.id || !name.trim()) return;
+    if (!sessionUser?.id || !name.trim()) return;
     if (editingId) {
       await updateCategory(editingId, { name: name.trim(), type });
       updateCategoryInStore(editingId, { name: name.trim(), type });
       closeDialog();
       return;
     }
-    const category = await createCategory(user.id, {
+    const category = await createCategory(sessionUser.id, {
       name: name.trim(),
       type,
       icon: 'tag',

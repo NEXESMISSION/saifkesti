@@ -111,11 +111,6 @@ export function LoginPage() {
         </div>
       </form>
 
-      <p className="text-center text-sm text-slate-500">
-        <Link to="/" className="underline hover:text-slate-700">
-          Continue as guest
-        </Link>
-      </p>
     </div>
   );
 }

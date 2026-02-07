@@ -16,7 +16,7 @@ import { Button } from './ui/button';
 import { format } from 'date-fns';
 
 export function Dashboard() {
-  const user = useStore((s) => s.user);
+  const sessionUser = useStore((s) => s.sessionUser);
   const accounts = useStore((s) => s.accounts);
   const transactions = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
@@ -30,20 +30,19 @@ export function Dashboard() {
   const [reconcileOpen, setReconcileOpen] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) return;
-    // Load accounts and categories for this device (guest user)
+    if (!sessionUser?.id) return;
     (async () => {
       const [accts, cats] = await Promise.all([
-        getAccounts(user.id),
-        getCategories(user.id),
+        getAccounts(sessionUser.id),
+        getCategories(sessionUser.id),
       ]);
       if (accts.length > 0) setAccounts(accts);
-      if (cats.length === 0) await seedDefaultCategories(user.id);
-      const allCats = await getCategories(user.id);
+      if (cats.length === 0) await seedDefaultCategories(sessionUser.id);
+      const allCats = await getCategories(sessionUser.id);
       setCategories(allCats);
       if (accts.length > 0 && !selectedAccountId) setSelectedAccountId(accts[0].id);
     })();
-  }, [user?.id, selectedAccountId, setAccounts, setCategories, setSelectedAccountId]);
+  }, [sessionUser?.id, setAccounts, setCategories, setSelectedAccountId]);
 
   useEffect(() => {
     if (!selectedAccountId) return;

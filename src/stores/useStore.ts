@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { Account, Transaction, Category } from '../types';
-import { getGuestUserId } from '../lib/guestUserId';
 
 interface AppState {
   user: { id: string } | null;
@@ -11,7 +10,6 @@ interface AppState {
   categories: Category[];
   selectedAccountId: string | null;
   isOnline: boolean;
-  pendingSyncCount: number;
   setUser: (user: { id: string } | null) => void;
   setSessionUser: (user: { id: string; email: string } | null) => void;
   setAccounts: (accounts: Account[]) => void;
@@ -19,7 +17,6 @@ interface AppState {
   setCategories: (categories: Category[]) => void;
   setSelectedAccountId: (id: string | null) => void;
   setIsOnline: (v: boolean) => void;
-  setPendingSyncCount: (n: number) => void;
   addAccount: (a: Account) => void;
   updateAccount: (id: string, a: Partial<Account>) => void;
   removeAccount: (id: string) => void;
@@ -32,14 +29,13 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set) => ({
-  user: typeof localStorage !== 'undefined' ? { id: getGuestUserId() } : null,
+  user: null,
   sessionUser: null,
   accounts: [],
   transactions: [],
   categories: [],
   selectedAccountId: null,
   isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-  pendingSyncCount: 0,
   setUser: (user) => set({ user }),
   setSessionUser: (sessionUser) => set({ sessionUser }),
   setAccounts: (accounts) => set({ accounts }),
@@ -47,7 +43,6 @@ export const useStore = create<AppState>((set) => ({
   setCategories: (categories) => set({ categories }),
   setSelectedAccountId: (selectedAccountId) => set({ selectedAccountId }),
   setIsOnline: (isOnline) => set({ isOnline }),
-  setPendingSyncCount: (pendingSyncCount) => set({ pendingSyncCount }),
   addAccount: (a) => set((s) => ({ accounts: [...s.accounts, a] })),
   updateAccount: (id, a) =>
     set((s) => ({
