@@ -5,8 +5,6 @@ import { getAccounts } from '../services/accountService';
 import { getTransactions } from '../services/transactionService';
 import { getCategories, seedDefaultCategories } from '../services/categoryService';
 import { getBalanceForAccount } from '../services/balanceService';
-import { syncQueueToSupabase } from '../lib/syncManager';
-import { getPendingSyncCount } from '../services/transactionService';
 import { subscribeToOnlineStatus } from '../lib/syncManager';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { AccountSelector } from './AccountSelector';
@@ -28,7 +26,6 @@ export function Dashboard() {
   const setCategories = useStore((s) => s.setCategories);
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
   const setIsOnline = useStore((s) => s.setIsOnline);
-  const setPendingSyncCount = useStore((s) => s.setPendingSyncCount);
   const [calculatedBalance, setCalculatedBalance] = useState(0);
   const [reconcileOpen, setReconcileOpen] = useState(false);
 
@@ -54,19 +51,16 @@ export function Dashboard() {
     getBalanceForAccount(selectedAccountId).then(setCalculatedBalance);
   }, [selectedAccountId, setTransactions]);
 
+  // Keep balance in sync when transactions are updated (e.g. after pull-to-refresh)
   useEffect(() => {
-    const unsub = subscribeToOnlineStatus((online) => {
-      setIsOnline(online);
-      if (online) {
-        syncQueueToSupabase().then(() => getPendingSyncCount().then(setPendingSyncCount));
-      }
-    });
-    return unsub;
-  }, [setIsOnline, setPendingSyncCount]);
+    if (!selectedAccountId) return;
+    getBalanceForAccount(selectedAccountId).then(setCalculatedBalance);
+  }, [selectedAccountId, transactions]);
 
   useEffect(() => {
-    getPendingSyncCount().then(setPendingSyncCount);
-  }, [transactions.length, setPendingSyncCount]);
+    const unsub = subscribeToOnlineStatus(setIsOnline);
+    return unsub;
+  }, [setIsOnline]);
 
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
@@ -123,7 +117,6 @@ export function Dashboard() {
             <TransactionList
               transactions={transactions.slice(0, 20)}
               categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-              onRefreshPending={() => getPendingSyncCount().then(setPendingSyncCount)}
             />
           </CardContent>
         </Card>

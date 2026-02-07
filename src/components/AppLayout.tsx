@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useStore } from '../stores/useStore';
 import { getAccounts } from '../services/accountService';
 import { getCategories, seedDefaultCategories } from '../services/categoryService';
+import { PullToRefresh } from './PullToRefresh';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -94,9 +95,11 @@ export function AppLayout() {
       </header>
 
       <main className="flex-1 pb-24 md:pb-8">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-5">
-          <Outlet />
-        </div>
+        <PullToRefresh>
+          <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-5">
+            <Outlet />
+          </div>
+        </PullToRefresh>
       </main>
 
       <nav
