@@ -105,7 +105,7 @@ export function Dashboard() {
           <CardContent>
             <TransactionList
               transactions={transactions.slice(0, 20)}
-              categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+              categories={categories.map((c) => ({ id: c.id, name: c.name, type: c.type }))}
             />
           </CardContent>
         </Card>
