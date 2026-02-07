@@ -11,8 +11,6 @@ export function AccountSelector({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const selected = accounts.find((a) => a.id === selectedId);
-
   if (accounts.length === 0) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
@@ -21,7 +19,9 @@ export function AccountSelector({
     );
   }
 
-  const value = selectedId ?? (accounts[0]?.id ?? '');
+  // Ensure value matches an existing account (avoid Radix issues with stale/missing id)
+  const selected = accounts.find((a) => a.id === selectedId);
+  const value = selected ? selected.id : accounts[0].id;
   return (
     <Select.Root value={value} onValueChange={onSelect}>
       <Select.Trigger

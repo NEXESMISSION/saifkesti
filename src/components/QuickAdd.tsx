@@ -31,7 +31,14 @@ export function QuickAdd() {
   const setSelectedAccountId = useStore((s) => s.setSelectedAccountId);
   const addTransaction = useStore((s) => s.addTransaction);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       type: 'expense',
@@ -42,11 +49,26 @@ export function QuickAdd() {
   });
 
   const type = watch('type');
+  const accountId = watch('accountId');
+  const categoryId = watch('categoryId');
   const filteredCategories = categories.filter((c) => c.type === type);
 
+  // When dialog opens, sync form with current selection or first account
   useEffect(() => {
-    if (open && selectedAccountId) setValue('accountId', selectedAccountId);
-  }, [open, selectedAccountId, setValue]);
+    if (!open) return;
+    const id = selectedAccountId || accounts[0]?.id || '';
+    setValue('accountId', id);
+    if (id && !selectedAccountId) setSelectedAccountId(id);
+  }, [open, accounts, selectedAccountId, setValue, setSelectedAccountId]);
+
+  // When type changes, clear category if it's not in the new type's list
+  useEffect(() => {
+    if (!open) return;
+    const validIds = new Set(filteredCategories.map((c) => c.id));
+    if (categoryId && !validIds.has(categoryId)) {
+      setValue('categoryId', undefined);
+    }
+  }, [type, open, categoryId, filteredCategories, setValue]);
 
   async function onSubmit(data: FormData) {
     const tx = await createTransaction(data.accountId, {
@@ -57,9 +79,13 @@ export function QuickAdd() {
       category_id: data.categoryId || null,
     });
     addTransaction(tx);
-    reset();
+    setSelectedAccountId(data.accountId);
+    reset({ type: 'expense', description: '', accountId: data.accountId, categoryId: undefined });
     setOpen(false);
   }
+
+  // Use form value for selector so it's the single source of truth; fallback to first account when we have accounts
+  const displayAccountId = accountId || accounts[0]?.id || null;
 
   return (
     <>
@@ -80,10 +106,10 @@ export function QuickAdd() {
               <div className="mt-1">
                 <AccountSelector
                   accounts={accounts}
-                  selectedId={selectedAccountId}
+                  selectedId={displayAccountId}
                   onSelect={(id) => {
+                    setValue('accountId', id, { shouldValidate: true });
                     setSelectedAccountId(id);
-                    setValue('accountId', id);
                   }}
                 />
               </div>
@@ -117,27 +143,42 @@ export function QuickAdd() {
             </div>
             <div>
               <Label htmlFor="description">Description</Label>
-              <Input id="description" className="mt-1" placeholder="Optional" {...register('description')} />
+              <Input
+                id="description"
+                className="mt-1"
+                placeholder="Optional"
+                {...register('description')}
+              />
             </div>
             {filteredCategories.length > 0 && (
               <div>
-                <Label>Category</Label>
+                <Label htmlFor="quickadd-category">Category</Label>
                 <select
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  id="quickadd-category"
+                  className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   {...register('categoryId')}
                 >
                   <option value="">Uncategorized</option>
                   {filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
             )}
             <div className="flex gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                className="flex-1"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1">Add</Button>
+              <Button type="submit" className="flex-1">
+                Add
+              </Button>
             </div>
           </form>
         </DialogContent>
