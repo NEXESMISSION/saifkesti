@@ -4,7 +4,8 @@ import { getGuestUserId } from './guestUserId';
 
 /**
  * Initialize auth: sync Supabase session with store.
- * Call once at app load. When user signs in/out, store user and sessionUser are updated.
+ * Only show as logged in if the session is valid (verified with server via getUser).
+ * Stale/local-only sessions are cleared so the app doesn't show "logged in" on first open without reason.
  */
 export function initAuth() {
   if (!supabase) return;
@@ -25,11 +26,24 @@ export function initAuth() {
     }
   }
 
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  const client = supabase;
+  client.auth.getSession().then(async ({ data: { session } }) => {
+    if (!session?.user) {
+      setUser({ id: getGuestUserId() });
+      setSessionUser(null);
+      return;
+    }
+    const { data: { user: currentUser }, error } = await client.auth.getUser();
+    if (error || !currentUser) {
+      await client.auth.signOut();
+      setUser({ id: getGuestUserId() });
+      setSessionUser(null);
+      return;
+    }
     updateFromSession(session);
   });
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  client.auth.onAuthStateChange((_event, session) => {
     updateFromSession(session);
   });
 }
