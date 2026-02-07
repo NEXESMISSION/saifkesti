@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { AccountSelector } from './AccountSelector';
 import { useStore } from '../stores/useStore';
 import { createTransaction } from '../services/transactionService';
 import type { TransactionType } from '../types';
@@ -17,11 +16,14 @@ const schema = z.object({
   amount: z.number().positive('Amount must be positive'),
   type: z.enum(['income', 'expense']),
   description: z.string(),
-  accountId: z.string().min(1, 'Select an account'),
+  accountId: z.string().min(1, 'Choose an account'),
   categoryId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
+
+const selectClass =
+  'w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20';
 
 export function QuickAdd() {
   const [open, setOpen] = useState(false);
@@ -49,16 +51,17 @@ export function QuickAdd() {
   });
 
   const type = watch('type');
-  const accountId = watch('accountId');
   const categoryId = watch('categoryId');
   const filteredCategories = categories.filter((c) => c.type === type);
 
-  // When dialog opens, sync form with current selection or first account
+  // When dialog opens, set account to current selection or first account (native select will show it)
   useEffect(() => {
-    if (!open) return;
-    const id = selectedAccountId || accounts[0]?.id || '';
+    if (!open || accounts.length === 0) return;
+    const id = selectedAccountId && accounts.some((a) => a.id === selectedAccountId)
+      ? selectedAccountId
+      : accounts[0].id;
     setValue('accountId', id);
-    if (id && !selectedAccountId) setSelectedAccountId(id);
+    if (!selectedAccountId) setSelectedAccountId(id);
   }, [open, accounts, selectedAccountId, setValue, setSelectedAccountId]);
 
   // When type changes, clear category if it's not in the new type's list
@@ -84,9 +87,6 @@ export function QuickAdd() {
     setOpen(false);
   }
 
-  // Use form value for selector so it's the single source of truth; fallback to first account when we have accounts
-  const displayAccountId = accountId || accounts[0]?.id || null;
-
   return (
     <>
       <button
@@ -102,17 +102,22 @@ export function QuickAdd() {
           <DialogTitle className="text-lg font-semibold">Quick add</DialogTitle>
           <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
             <div>
-              <Label>Account</Label>
-              <div className="mt-1">
-                <AccountSelector
-                  accounts={accounts}
-                  selectedId={displayAccountId}
-                  onSelect={(id) => {
-                    setValue('accountId', id, { shouldValidate: true });
-                    setSelectedAccountId(id);
-                  }}
-                />
-              </div>
+              <Label htmlFor="quickadd-account">Account</Label>
+              <select
+                id="quickadd-account"
+                className={selectClass}
+                {...register('accountId', {
+                  required: true,
+                  onChange: (e) => setSelectedAccountId((e.target as HTMLSelectElement).value),
+                })}
+              >
+                <option value="">Select account</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
               {errors.accountId && (
                 <p className="mt-1 text-sm text-red-600">{errors.accountId.message}</p>
               )}
